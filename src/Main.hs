@@ -11,7 +11,7 @@ import Data.String
 
 import CMark
 import Text.Blaze.Internal
-import Text.Blaze.Svg11 as S hiding (textpath)
+import Text.Blaze.Svg11 as S hiding (textpath, tspan)
 import Text.Blaze.Svg11.Attributes
 import Text.Blaze.Svg.Renderer.String
 
@@ -100,22 +100,22 @@ nodeToElem (Node _ DOCUMENT _) = error "Unexpected DOCUMENT"
 nodeToElem (Node _ THEMATIC_BREAK _) = error "Unexpected THEMATIC_BREAK"
 
 nodeToElem (Node _ PARAGRAPH ns) = do
-  pathId <- ("path" ++) <$> show <$> getNewPathId
-  y <- gets pageY
-  width <- gets (pageWidth . config)
-  offset <- gets (sideOffset . config)
-  space <- gets (lineSpace . config)
+  -- pathId <- ("path" ++) <$> show <$> getNewPathId
+  -- y <- gets pageY
+  -- width <- gets (pageWidth . config)
+  -- offset <- gets (sideOffset . config)
+  -- space <- gets (lineSpace . config)
   fsize <- gets currFontSize
 
-  let path = mkPath $ do
-        forM_ [1..10] $ \i -> do
-          m offset $ y + (round $ (fromInteger $ i * fsize) * space)
-          h (width - offset)
+  -- let path = mkPath $ do
+  --       forM_ [1..10] $ \i -> do
+  --         m offset $ y + (round $ (fromInteger $ i * fsize) * space)
+  --         h (width - offset)
 
-  appendDef $ S.path ! id_ (fromString pathId) ! d path
+  -- appendDef $ S.path ! id_ (fromString pathId) ! d path
 
   return . (text_ ! fontSize (toAttrValue fsize))
-         . (textpath ! xlinkHref (fromString $ "#" ++ pathId))
+         -- . (textpath ! xlinkHref (fromString $ "#" ++ pathId))
          =<< sequence_ <$> nodesToElems ns
 
 nodeToElem (Node _ BLOCK_QUOTE _) = return $ return ()
@@ -138,7 +138,10 @@ nodeToElem (Node _ (LIST _) _) = return $ return ()
 nodeToElem (Node _ ITEM _) = return $ return ()
 
 nodeToElem (Node _ (TEXT t) _) = do
-  return $ toMarkup $ unpack t
+  space <- gets (lineSpace . config)
+  increaseY =<< gets currFontSize
+  return $ (tspan ! x "0" ! dy (fromString $ show space ++ "em"))
+         $ toMarkup $ unpack t
 
 nodeToElem (Node _ SOFTBREAK _) = return $ return ()
 nodeToElem (Node _ LINEBREAK _) = return $ return ()
@@ -182,6 +185,10 @@ increaseY p = modify $ \s -> s { pageY = pageY s + p }
 
 textpath :: Svg -> Svg
 textpath = Parent "textPath" "<textPath"  "</textPath>"
+
+
+tspan :: Svg -> Svg
+tspan = Parent "tspan" "<tspan"  "</tspan>"
 
 
 changeFontSize :: (Pixel -> Pixel) -> Compiler a -> Compiler a
